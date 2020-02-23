@@ -1,21 +1,52 @@
 import React, {Component} from 'react'
-import {Form, Icon, Input, Button} from 'antd';
-import './login.less'
+import {Form, Icon, Input, Button,message} from 'antd';
+import {Redirect} from 'react-router-dom'
 
+import './login.less'
+import {reqLogin} from '../../api'
+import memoryUtils from "../../utils/memoryUtils";
+import storageUtils from "../../utils/storageUtils";
 /*
 后台登陆的路由组件
  */
 class Login extends Component {
 
     handleSubmit = (event) => {
-        //阻止事件的默认行为
+        // //阻止事件的默认行为
         event.preventDefault()
         //得到具有很多功能的form对象
         const form = this.props.form
-        form.validateFields((err, values) => {
+        form.validateFields(async (err, values) => {
             //校验成功
             if (!err) {
-                console.log('提交登录的ajax请求 ', values);
+                //console.log('提交登录的ajax请求 ', values);
+                const {username, password} = values
+                // reqLogin(username,password).then(response => {
+                //     console.log('请求成功了',response.data)
+                // }).catch(error => {
+                //     console.log('请求失败了',error)
+                // })
+                const response = await reqLogin(username, password)
+                //console.log('请求成功了', response.data)
+                const result = response.data
+                if (result.status===0){
+                    //登陆成功
+                    //提示登陆成功
+                    message.success('登陆成功')
+                    //保存user
+                    const user = result.data
+                    //保存到内存中
+                    memoryUtils.user = user
+                    //保存到local中
+                    storageUtils.saveUser(user)
+                    //跳转到管理界面
+                    this.props.history.replace('/')
+                }else {
+                    //登陆失败
+                    message.error(result.msg)
+                }
+            } else {
+                console.log('校验失败')
             }
         });
 
@@ -24,21 +55,26 @@ class Login extends Component {
     /*
     对密码进行自定义验证
      */
-    validatePwd =(rule,value,callback) =>{
-        if (!value){
+    validatePwd = (rule, value, callback) => {
+        if (!value) {
             callback('请输入密码')
-        }else if(value.length<4){
+        } else if (value.length < 4) {
             callback('长度不能小于4')
-        }else if(value.length>12){
+        } else if (value.length > 12) {
             callback('长度不能大于12')
-        }else if (!/^[a-zA-Z0-9_]+$/.test(value)){
+        } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
             callback('必须是英文，数字或者下划线')
-        }else {
+        } else {
             callback()
         }
     }
 
     render() {
+        //如果用户已经登录，跳转到管理界面
+        if (memoryUtils.user && memoryUtils.user._id){
+            return <Redirect to='/'/>
+        }
+
         //得到具有很多功能的form对象
         const {form} = this.props
         const {getFieldDecorator} = form
@@ -54,23 +90,23 @@ class Login extends Component {
                         <Form.Item>
                             {getFieldDecorator('username', {
                                 rules: [
-                                    {required: true, whiteSpace:true,message: 'Please input your username!'},
-                                    {min:4,message: '至少4位'},
-                                    {max:12,message:'最多12位'},
-                                    {pattern:/^[a-zA-Z0-9_]+$/,message:'必须是英文，数字或者下划线'}
-                                    ],
+                                    {required: true, whiteSpace: true, message: 'Please input your username!'},
+                                    {min: 4, message: '至少4位'},
+                                    {max: 12, message: '最多12位'},
+                                    {pattern: /^[a-zA-Z0-9_]+$/, message: '必须是英文，数字或者下划线'}
+                                ],
                             })(
                                 <Input
-                                prefix={<Icon type="user" style={{color: 'rgba(0,0,0,.25)'}}/>}
-                                placeholder="Username"
+                                    prefix={<Icon type="user" style={{color: 'rgba(0,0,0,.25)'}}/>}
+                                    placeholder="Username"
                                 />,
                             )}
                         </Form.Item>
                         <Form.Item>
                             {getFieldDecorator('password', {
                                 rules: [
-                                    {validator:this.validatePwd}
-                                    ],
+                                    {validator: this.validatePwd}
+                                ],
                             })(
                                 <Input
                                     prefix={<Icon type="lock" style={{color: 'rgba(0,0,0,.25)'}}/>}
@@ -118,3 +154,13 @@ class Login extends Component {
  */
 const WrapLogin = Form.create()(Login)
 export default WrapLogin
+
+/*
+async和await
+1.作用：简化了promise对象的使用，不用再使用then()来指定成功/失败的回调函数
+        以同步编码方式实现异步流程
+2.哪里写await
+    返回promise的表达式左侧，得到promise异步执行成功的value数据
+3.哪里写async
+    await所在最近的函数的左侧
+ */
