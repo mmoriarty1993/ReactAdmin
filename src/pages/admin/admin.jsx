@@ -50,7 +50,7 @@ export default class Admin extends Component {
                             </Switch>
 
                             <div>
-                                Hello, {user.username}
+
                             </div>
                         </Content>
                         <Footer style={{textAlign:'center',color:'#cccccc'}}>

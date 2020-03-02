@@ -37,3 +37,4 @@ export default function ajax(url, data = {}, type = 'GET') {
 
 //请求登陆接口
 ajax('/login', {username: 'Tom', password: '12345'}, 'POST').then()
+
